@@ -8,16 +8,11 @@
     <style>
         :root {
             --main-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --accent-bright: #00f2fe;
             --btn-grad: linear-gradient(to right, #00dbde 0%, #fc00ff 100%);
             --text-main: #2d3436;
-            --bg-soft: #f0f2f5;
         }
 
-        * {
-            box-sizing: border-box;
-            font-family: 'Montserrat', sans-serif;
-        }
+        * { box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
 
         body {
             background: var(--main-gradient);
@@ -64,15 +59,11 @@
             border-radius: 15px;
             font-size: 1rem;
             resize: none;
-            transition: all 0.3s;
-            font-family: inherit;
+            outline: none;
+            transition: 0.3s;
         }
 
-        textarea:focus {
-            border-color: #764ba2;
-            outline: none;
-            box-shadow: 0 0 15px rgba(118, 75, 162, 0.2);
-        }
+        textarea:focus { border-color: #764ba2; box-shadow: 0 0 15px rgba(118, 75, 162, 0.1); }
 
         .btn-generate {
             background: var(--btn-grad);
@@ -81,39 +72,19 @@
             padding: 15px;
             border-radius: 15px;
             font-weight: 600;
-            font-size: 1rem;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            transition: 0.2s;
         }
 
-        .btn-generate:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(252, 0, 255, 0.3);
-        }
+        .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(252, 0, 255, 0.3); }
 
-        .progress-container {
-            height: 8px;
-            background: #eee;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            display: none;
-        }
+        #loader { display: none; text-align: center; margin-bottom: 20px; color: #764ba2; font-style: italic; }
 
-        #progress-fill {
-            height: 100%;
-            width: 0%;
-            background: var(--btn-grad);
-            border-radius: 10px;
-            transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+        .progress-container { height: 8px; background: #eee; border-radius: 10px; margin-bottom: 25px; display: none; }
+        #progress-fill { height: 100%; width: 0%; background: var(--btn-grad); border-radius: 10px; transition: 0.5s; }
 
-        #taskList {
-            list-style: none;
-            padding: 0;
-        }
-
+        #taskList { list-style: none; padding: 0; }
         .task-item {
             background: #fff;
             border-left: 5px solid #667eea;
@@ -124,72 +95,19 @@
             align-items: center;
             gap: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: all 0.3s;
-            animation: slideIn 0.3s ease-out;
         }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .task-item.completed {
-            opacity: 0.6;
-            background: #f8f9fa;
-            border-left-color: #2ecc71;
-        }
-
-        .task-item.completed .task-text {
-            text-decoration: line-through;
-        }
+        .task-item.completed { opacity: 0.6; border-left-color: #2ecc71; }
+        .task-item.completed .task-text { text-decoration: line-through; }
 
         .check-btn {
-            min-width: 24px;
-            height: 24px;
-            border: 2px solid #667eea;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
+            width: 24px; height: 24px; border: 2px solid #667eea; border-radius: 6px; cursor: pointer;
         }
+        .completed .check-btn { background: #2ecc71; border-color: #2ecc71; }
 
-        .completed .check-btn {
-            background: #2ecc71;
-            border-color: #2ecc71;
-        }
-
-        .task-text {
-            flex-grow: 1;
-            font-weight: 400;
-            outline: none;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: center;
-            margin-top: 30px;
-        }
+        .task-text { flex-grow: 1; outline: none; }
 
         .btn-reset {
-            background: none;
-            border: none;
-            color: #ff4757;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
-            opacity: 0.7;
-        }
-
-        .btn-reset:hover { opacity: 1; }
-
-        #loader {
-            display: none;
-            text-align: center;
-            margin-bottom: 20px;
-            font-style: italic;
-            color: #764ba2;
+            display: block; margin: 30px auto 0; background: none; border: none; color: #ff4757; cursor: pointer; font-weight: 600;
         }
     </style>
 </head>
@@ -197,92 +115,53 @@
 
 <div class="app-card">
     <h1>CASCADE AI</h1>
-    
     <div class="input-section">
         <textarea id="goalInput" rows="3" placeholder="Опиши свою большую цель..."></textarea>
         <button class="btn-generate" onclick="handleStart()">Декомпозировать</button>
     </div>
-
     <div id="loader">Нейросеть дробит задачу...</div>
-
     <div class="progress-container" id="progressContainer">
         <div id="progress-fill"></div>
     </div>
-
     <ul id="taskList"></ul>
-
-    <div class="controls">
-        <button class="btn-reset" onclick="resetAll()">Сбросить всё</button>
-    </div>
+    <button class="btn-reset" onclick="resetAll()">Сбросить всё</button>
 </div>
 
 <script>
-    const goalInput = document.getElementById('goalInput');
-    const taskList = document.getElementById('taskList');
-    const progressFill = document.getElementById('progress-fill');
-    const progressContainer = document.getElementById('progressContainer');
-    const loader = document.getElementById('loader');
-
-    // Настройка адреса n8n
     const WEBHOOK_URL = 'https://n8n.2gis.io/webhook-test/28414bc9-9b12-4c01-b698-fbf5aaf47485';
 
-    async function getAIResponse(userGoal) {
+    async function handleStart() {
+        const input = document.getElementById('goalInput');
+        const goal = input.value.trim();
+        if (!goal) return alert("Введите цель");
+
+        const loader = document.getElementById('loader');
+        const taskList = document.getElementById('taskList');
+        
+        loader.style.display = 'block';
+        taskList.innerHTML = '';
+
         try {
             const response = await fetch(WEBHOOK_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ goal: userGoal })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ goal: goal })
             });
 
-            if (!response.ok) throw new Error('Ошибка сервера n8n');
-
             const data = await response.json();
-            
-            // Логика обработки ответа:
-            // 1. Если ИИ вернул массив ["задача1", "задача2"]
-            if (Array.isArray(data)) return data;
-            
-            // 2. Если n8n вернул объект с полем output или tasks
-            if (data.tasks && Array.isArray(data.tasks)) return data.tasks;
-            if (data.output) {
-                // Если пришел текст, пробуем разбить его по строкам
-                return data.output.split('\n').filter(line => line.trim() !== '');
-            }
+            loader.style.display = 'none';
 
-            // Если пришел просто объект, пробуем взять первое значение
-            return [Object.values(data)[0]];
+            // Обработка данных от n8n
+            let tasks = [];
+            if (Array.isArray(data)) tasks = data;
+            else if (data.tasks) tasks = data.tasks;
+            else if (data.output) tasks = data.output.split('\n').filter(t => t.trim());
 
-        } catch (error) {
-            console.error("Критическая ошибка fetch:", error);
-            return null;
-        }
-    }
-
-    async function handleStart() {
-        const goal = goalInput.value.trim();
-        if (!goal) {
-            alert("Пожалуйста, введите цель!");
-            return;
-        }
-
-        // Показываем загрузку
-        loader.style.display = 'block';
-        loader.innerText = "Нейросеть анализирует цель...";
-        taskList.innerHTML = '';
-        progressContainer.style.display = 'none';
-
-        const subtasks = await getAIResponse(goal);
-        
-        loader.style.display = 'none';
-
-        if (subtasks && subtasks.length > 0) {
-            progressContainer.style.display = 'block';
-            subtasks.forEach(text => addTask(text));
+            tasks.forEach(t => addTask(t));
             updateProgress();
-        } else {
-            alert("Не удалось получить ответ от ИИ. Проверь, запущен ли Test в n8n и настройки CORS.");
+        } catch (e) {
+            loader.innerText = "Ошибка связи с ИИ";
+            console.error(e);
         }
     }
 
@@ -291,9 +170,9 @@
         li.className = 'task-item';
         li.innerHTML = `
             <div class="check-btn" onclick="toggleTask(this)"></div>
-            <span class="task-text" contenteditable="true" onblur="updateProgress()">${text}</span>
+            <span class="task-text" contenteditable="true">${text}</span>
         `;
-        taskList.appendChild(li);
+        document.getElementById('taskList').appendChild(li);
     }
 
     function toggleTask(el) {
@@ -302,25 +181,25 @@
     }
 
     function updateProgress() {
-        const tasks = document.querySelectorAll('.task-item');
+        const tasks = document.querySelectorAll('.task-item').length;
         const completed = document.querySelectorAll('.task-item.completed').length;
-        
-        if (tasks.length > 0) {
-            const percent = (completed / tasks.length) * 100;
-            progressFill.style.width = percent + '%';
+        const container = document.getElementById('progressContainer');
+        if (tasks > 0) {
+            container.style.display = 'block';
+            document.getElementById('progress-fill').style.width = (completed / tasks * 100) + '%';
         }
     }
 
     function resetAll() {
-        if (confirm("Удалить все задачи и начать заново?")) {
-            goalInput.value = '';
-            taskList.innerHTML = '';
-            progressContainer.style.display = 'none';
-            progressFill.style.width = '0%';
+        if (confirm("Очистить?")) {
+            document.getElementById('goalInput').value = '';
+            document.getElementById('taskList').innerHTML = '';
+            document.getElementById('progressContainer').style.display = 'none';
         }
     }
 </script>
 
 </body>
 </html>
+
 
