@@ -4,16 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Cascade Planner</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --main-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --btn-grad: linear-gradient(to right, #00dbde 0%, #fc00ff 100%);
             --text-main: #2d3436;
         }
-
         * { box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
-
         body {
             background: var(--main-gradient);
             background-attachment: fixed;
@@ -25,7 +23,6 @@
             margin: 0;
             color: var(--text-main);
         }
-
         .app-card {
             background: rgba(255, 255, 255, 0.95);
             width: 100%;
@@ -34,81 +31,39 @@
             border-radius: 30px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.2);
         }
-
         h1 {
             font-weight: 700;
-            font-size: 1.8rem;
             text-align: center;
-            margin-bottom: 30px;
             background: var(--btn-grad);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-        }
-
-        .input-section {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
             margin-bottom: 30px;
         }
-
+        .input-section { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
         textarea {
-            width: 100%;
-            padding: 18px;
-            border: 2px solid #eee;
-            border-radius: 15px;
-            font-size: 1rem;
-            resize: none;
-            outline: none;
-            transition: 0.3s;
+            width: 100%; padding: 18px; border: 2px solid #eee; border-radius: 15px;
+            font-size: 1rem; resize: none; outline: none; transition: 0.3s;
         }
-
-        textarea:focus { border-color: #764ba2; box-shadow: 0 0 15px rgba(118, 75, 162, 0.1); }
-
+        textarea:focus { border-color: #764ba2; }
         .btn-generate {
-            background: var(--btn-grad);
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: 0.2s;
+            background: var(--btn-grad); color: white; border: none; padding: 15px;
+            border-radius: 15px; font-weight: 600; cursor: pointer; text-transform: uppercase;
         }
-
-        .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(252, 0, 255, 0.3); }
-
         #loader { display: none; text-align: center; margin-bottom: 20px; color: #764ba2; font-style: italic; }
-
         .progress-container { height: 8px; background: #eee; border-radius: 10px; margin-bottom: 25px; display: none; }
         #progress-fill { height: 100%; width: 0%; background: var(--btn-grad); border-radius: 10px; transition: 0.5s; }
-
         #taskList { list-style: none; padding: 0; }
         .task-item {
-            background: #fff;
-            border-left: 5px solid #667eea;
-            margin-bottom: 12px;
-            padding: 15px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+            background: #fff; border-left: 5px solid #667eea; margin-bottom: 12px;
+            padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
         .task-item.completed { opacity: 0.6; border-left-color: #2ecc71; }
         .task-item.completed .task-text { text-decoration: line-through; }
-
-        .check-btn {
-            width: 24px; height: 24px; border: 2px solid #667eea; border-radius: 6px; cursor: pointer;
-        }
+        .check-btn { width: 24px; height: 24px; border: 2px solid #667eea; border-radius: 6px; cursor: pointer; }
         .completed .check-btn { background: #2ecc71; border-color: #2ecc71; }
-
         .task-text { flex-grow: 1; outline: none; }
-
-        .btn-reset {
-            display: block; margin: 30px auto 0; background: none; border: none; color: #ff4757; cursor: pointer; font-weight: 600;
-        }
+        .btn-reset { display: block; margin: 30px auto 0; background: none; border: none; color: #ff4757; cursor: pointer; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -128,6 +83,7 @@
 </div>
 
 <script>
+    // ТВОЙ URL ИЗ n8n
     const WEBHOOK_URL = 'https://n8n.2gis.io/webhook-test/28414bc9-9b12-4c01-b698-fbf5aaf47485';
 
     async function handleStart() {
@@ -139,6 +95,7 @@
         const taskList = document.getElementById('taskList');
         
         loader.style.display = 'block';
+        loader.innerText = "Нейросеть дробит задачу...";
         taskList.innerHTML = '';
 
         try {
@@ -148,19 +105,21 @@
                 body: JSON.stringify({ goal: goal })
             });
 
+            if (!response.ok) throw new Error('Ошибка сети');
+
             const data = await response.json();
             loader.style.display = 'none';
 
-            // Обработка данных от n8n
             let tasks = [];
             if (Array.isArray(data)) tasks = data;
             else if (data.tasks) tasks = data.tasks;
             else if (data.output) tasks = data.output.split('\n').filter(t => t.trim());
+            else tasks = [JSON.stringify(data)];
 
             tasks.forEach(t => addTask(t));
             updateProgress();
         } catch (e) {
-            loader.innerText = "Ошибка связи с ИИ";
+            loader.innerText = "Ошибка: проверьте n8n (Test URL и CORS)";
             console.error(e);
         }
     }
@@ -168,10 +127,7 @@
     function addTask(text) {
         const li = document.createElement('li');
         li.className = 'task-item';
-        li.innerHTML = `
-            <div class="check-btn" onclick="toggleTask(this)"></div>
-            <span class="task-text" contenteditable="true">${text}</span>
-        `;
+        li.innerHTML = `<div class="check-btn" onclick="toggleTask(this)"></div><span class="task-text" contenteditable="true">${text}</span>`;
         document.getElementById('taskList').appendChild(li);
     }
 
@@ -191,7 +147,7 @@
     }
 
     function resetAll() {
-        if (confirm("Очистить?")) {
+        if (confirm("Очистить всё?")) {
             document.getElementById('goalInput').value = '';
             document.getElementById('taskList').innerHTML = '';
             document.getElementById('progressContainer').style.display = 'none';
@@ -201,5 +157,3 @@
 
 </body>
 </html>
-
-
