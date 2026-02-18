@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Более яркая, сочная палитра */
             --main-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --accent-bright: #00f2fe;
             --btn-grad: linear-gradient(to right, #00dbde 0%, #fc00ff 100%);
@@ -94,13 +93,12 @@
             box-shadow: 0 5px 15px rgba(252, 0, 255, 0.3);
         }
 
-        /* Прогресс-бар */
         .progress-container {
             height: 8px;
             background: #eee;
             border-radius: 10px;
             margin-bottom: 25px;
-            display: none; /* Появится при наличии задач */
+            display: none;
         }
 
         #progress-fill {
@@ -111,7 +109,6 @@
             transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* Список задач */
         #taskList {
             list-style: none;
             padding: 0;
@@ -187,7 +184,6 @@
 
         .btn-reset:hover { opacity: 1; }
 
-        /* Лоадер */
         #loader {
             display: none;
             text-align: center;
@@ -227,45 +223,66 @@
     const progressContainer = document.getElementById('progressContainer');
     const loader = document.getElementById('loader');
 
-    // --- СВЯЗКА С ИИ ---
-    async function getAIResponse(userGoal) {
-        /** * МЕСТО ДЛЯ ТВОЕГО КОДА:
-         * Сюда ты вставишь fetch-запрос к своему бэкенду или API.
-         * Ожидается массив строк.
-         */
-        
-        // Имитация задержки ИИ
-        await new Promise(resolve => setTimeout(resolve, 1500));
+    // Настройка адреса n8n
+    const WEBHOOK_URL = 'https://n8n.2gis.io/webhook-test/28414bc9-9b12-4c01-b698-fbf5aaf47485';
 
-        // Временная заглушка (замени это логикой из нейронки)
-        return [
-            "Разбить " + userGoal + " на этапы",
-            "Определить необходимые ресурсы",
-            "Выполнить первый шаг",
-            "Провести промежуточный анализ",
-            "Завершить проект"
-        ];
+    async function getAIResponse(userGoal) {
+        try {
+            const response = await fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ goal: userGoal })
+            });
+
+            if (!response.ok) throw new Error('Ошибка сервера n8n');
+
+            const data = await response.json();
+            
+            // Логика обработки ответа:
+            // 1. Если ИИ вернул массив ["задача1", "задача2"]
+            if (Array.isArray(data)) return data;
+            
+            // 2. Если n8n вернул объект с полем output или tasks
+            if (data.tasks && Array.isArray(data.tasks)) return data.tasks;
+            if (data.output) {
+                // Если пришел текст, пробуем разбить его по строкам
+                return data.output.split('\n').filter(line => line.trim() !== '');
+            }
+
+            // Если пришел просто объект, пробуем взять первое значение
+            return [Object.values(data)[0]];
+
+        } catch (error) {
+            console.error("Критическая ошибка fetch:", error);
+            return null;
+        }
     }
 
     async function handleStart() {
         const goal = goalInput.value.trim();
-        if (!goal) return;
+        if (!goal) {
+            alert("Пожалуйста, введите цель!");
+            return;
+        }
 
+        // Показываем загрузку
         loader.style.display = 'block';
+        loader.innerText = "Нейросеть анализирует цель...";
         taskList.innerHTML = '';
         progressContainer.style.display = 'none';
 
-        try {
-            const subtasks = await getAIResponse(goal);
-            
-            loader.style.display = 'none';
+        const subtasks = await getAIResponse(goal);
+        
+        loader.style.display = 'none';
+
+        if (subtasks && subtasks.length > 0) {
             progressContainer.style.display = 'block';
-            
             subtasks.forEach(text => addTask(text));
             updateProgress();
-        } catch (error) {
-            console.error("Ошибка ИИ:", error);
-            loader.innerText = "Ошибка при загрузке данных.";
+        } else {
+            alert("Не удалось получить ответ от ИИ. Проверь, запущен ли Test в n8n и настройки CORS.");
         }
     }
 
@@ -289,34 +306,21 @@
         const completed = document.querySelectorAll('.task-item.completed').length;
         
         if (tasks.length > 0) {
-            progressContainer.style.display = 'block';
             const percent = (completed / tasks.length) * 100;
             progressFill.style.width = percent + '%';
-        } else {
-            progressContainer.style.display = 'none';
         }
     }
 
     function resetAll() {
-        if (confirm("Начать заново?")) {
+        if (confirm("Удалить все задачи и начать заново?")) {
             goalInput.value = '';
             taskList.innerHTML = '';
-            updateProgress();
+            progressContainer.style.display = 'none';
+            progressFill.style.width = '0%';
         }
     }
 </script>
 
-    async function sendToAI(userGoal) {
-  const response = await fetch('ТВОЙ_URL_WEBHOOK_ИЗ_N8N', {
-    method: 'POST',
-    body: JSON.stringify({ goal: userGoal }),
-    headers: { 'Content-Type': 'application/json' }
-  });
-  const data = await response.json();
-  console.log('План от ИИ:', data);
-  // Здесь добавь логику отображения данных в твоем интерфейсе
-}
-
 </body>
-
 </html>
+
