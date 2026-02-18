@@ -95,7 +95,7 @@
         const btn = document.getElementById('mainBtn');
         
         loader.style.display = 'block';
-        loader.innerText = "Формируем чистый список...";
+        loader.innerText = "Очистка от лишних слов...";
         btn.disabled = true;
         btn.style.opacity = '0.5';
         taskList.innerHTML = '';
@@ -118,17 +118,20 @@
             let rawText = "";
             if (typeof data === 'string') rawText = data;
             else if (data.output) rawText = data.output;
-            else if (data.tasks) rawText = Array.isArray(data.tasks) ? data.tasks.join('\n') : data.tasks;
+            else if (data.text) rawText = data.text;
             else rawText = JSON.stringify(data);
 
-            // ФИЛЬТРАЦИЯ И ОЧИСТКА
-            const stopWords = ['вот', 'чек-лист', 'план', 'удачи', 'конечно', 'согласно', 'задач', 'меню', 'ужин', 'куриное', 'привет', 'подготовил'];
+            // --- ЖЕСТКАЯ ОЧИСТКА МУСОРА ---
+            const stopPhrases = ['вот', 'этот', 'план', 'удачи', 'конечно', 'чек-лист', 'согласно', 'подготовил', 'ниже', 'шаги', 'меню'];
 
             const tasks = rawText
                 .split('\n')
+                .filter(line => line.trim().length > 0) // Убираем пустые
+                .filter(line => !line.includes('---'))  // Убираем разделители
+                .filter(line => !line.startsWith('#'))  // Убираем заголовки Markdown
                 .map(line => {
                     return line
-                        .replace(/[#*]/g, '')               // Убираем решетки и звездочки
+                        .replace(/[#*]/g, '')               // Убираем оставшиеся решетки и звездочки
                         .replace(/\[[\sxX]?\]/g, '')       // Убираем [ ], [x]
                         .replace(/^[-•—\d.]+\s?/, '')      // Убираем тире, цифры и точки в начале
                         .replace(/:\s*$/, '')              // Убираем двоеточия в конце
@@ -136,21 +139,20 @@
                 })
                 .filter(line => {
                     const low = line.toLowerCase();
-                    // Убираем пустые, разделители и строки со стоп-словами
+                    // Финальный фильтр: убираем короткие строки и вводные слова ИИ
                     return line.length > 5 && 
-                           !line.startsWith('---') && 
-                           !stopWords.some(word => low.startsWith(word));
+                           !stopPhrases.some(word => low.startsWith(word));
                 });
 
             if (tasks.length === 0) {
-                addTask("ИИ не выдал четких шагов. Попробуй изменить запрос.");
+                addTask("ИИ был слишком разговорчив. Попробуйте нажать кнопку еще раз.");
             } else {
                 tasks.forEach(t => addTask(t));
             }
             
             updateProgress();
         } catch (e) {
-            loader.innerText = "Ошибка! Проверь n8n (CORS и статус Active)";
+            loader.innerText = "Ошибка! Проверьте n8n (CORS и статус Active)";
             btn.disabled = false;
             btn.style.opacity = '1';
         }
@@ -189,6 +191,7 @@
 
 </body>
 </html>
+
 
 
 
