@@ -13,10 +13,8 @@
         }
         * { box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
         body {
-            background: var(--main-gradient);
-            background-attachment: fixed;
-            min-height: 100vh;
-            display: flex; justify-content: center; align-items: flex-start;
+            background: var(--main-gradient); background-attachment: fixed;
+            min-height: 100vh; display: flex; justify-content: center; align-items: flex-start;
             padding: 40px 20px; margin: 0; color: var(--text-main);
         }
         .app-card {
@@ -26,7 +24,7 @@
         h1 {
             font-weight: 700; text-align: center;
             background: var(--btn-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            margin-bottom: 30px; letter-spacing: -1px;
+            margin-bottom: 30px;
         }
         .input-section { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
         textarea {
@@ -37,28 +35,22 @@
         .btn-generate {
             background: var(--btn-grad); color: white; border: none; padding: 15px;
             border-radius: 15px; font-weight: 600; cursor: pointer; text-transform: uppercase;
-            transition: transform 0.2s;
         }
-        .btn-generate:active { transform: scale(0.98); }
-        #loader { display: none; text-align: center; margin-bottom: 20px; color: #764ba2; font-weight: 600; }
+        #loader { display: none; text-align: center; margin: 20px 0; color: #764ba2; font-weight: 600; }
         .progress-container { height: 8px; background: #eee; border-radius: 10px; margin-bottom: 25px; display: none; }
         #progress-fill { height: 100%; width: 0%; background: var(--btn-grad); border-radius: 10px; transition: 0.5s; }
         #taskList { list-style: none; padding: 0; }
         .task-item {
             background: #fff; border-left: 5px solid #667eea; margin-bottom: 12px;
             padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); animation: slideIn 0.3s ease-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .task-item.completed { opacity: 0.6; border-left-color: #2ecc71; }
         .task-item.completed .task-text { text-decoration: line-through; }
         .check-btn { width: 24px; height: 24px; border: 2px solid #667eea; border-radius: 6px; cursor: pointer; flex-shrink: 0; }
-        .completed .check-btn { background: #2ecc71; border-color: #2ecc71; position: relative; }
-        .completed .check-btn::after {
-            content: '✔'; color: white; font-size: 14px; position: absolute; left: 4px; top: 0px;
-        }
-        .task-text { flex-grow: 1; outline: none; line-height: 1.4; font-weight: 500; font-size: 0.95rem; }
-        .btn-reset { display: block; margin: 30px auto 0; background: none; border: none; color: #ff4757; cursor: pointer; font-weight: 600; font-size: 0.8rem; }
+        .completed .check-btn { background: #2ecc71; border-color: #2ecc71; }
+        .task-text { flex-grow: 1; outline: none; line-height: 1.4; font-weight: 500; font-size: 0.9rem; }
+        .btn-reset { display: block; margin: 30px auto 0; background: none; border: none; color: #ff4757; cursor: pointer; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -66,7 +58,7 @@
 <div class="app-card">
     <h1>CASCADE AI</h1>
     <div class="input-section">
-        <textarea id="goalInput" rows="3" placeholder="Введите сложную цель для экспертной декомпозиции..."></textarea>
+        <textarea id="goalInput" rows="3" placeholder="Введите глобальную задачу для декомпозиции..."></textarea>
         <button id="mainBtn" class="btn-generate" onclick="handleStart()">Декомпозировать</button>
     </div>
     <div id="loader">Думаю...</div>
@@ -83,56 +75,64 @@
     async function handleStart() {
         const input = document.getElementById('goalInput');
         const goal = input.value.trim();
-        if (!goal) return alert("Введите цель");
+        if (!goal) return alert("Введите задачу");
 
         const loader = document.getElementById('loader');
         const taskList = document.getElementById('taskList');
         const btn = document.getElementById('mainBtn');
         
         loader.style.display = 'block';
-        btn.disabled = true; btn.style.opacity = '0.5';
+        btn.disabled = true;
         taskList.innerHTML = '';
 
-        // ЗАДАЕМ РОЛЬ ЭКСПЕРТА ПРЯМО В ЗАПРОСЕ
-        const expertPrompt = `Действуй как эксперт по стратегическому планированию. Разбей цель "${goal}" на конкретные, измеримые шаги. Выдай ТОЛЬКО список задач без вступлений, пояснений и вежливости.`;
+        // Промпт для n8n: заставляем ИИ быть лаконичным архитектором
+        const expertPrompt = `ДЕКОМПОЗИРУЙ ЗАДАЧУ: "${goal}". 
+        ТВОЯ РОЛЬ: Эксперт-планировщик. 
+        ПРАВИЛА: 
+        1. Выдай только список подзадач. 
+        2. Никаких вступлений, советов и вежливости. 
+        3. Каждая задача должна начинаться с глагола.
+        4. Коротко и ясно.`;
 
         try {
             const response = await fetch(WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    goal: expertPrompt, // Отправляем промпт с ролью
-                    original_goal: goal 
-                })
+                body: JSON.stringify({ goal: expertPrompt })
             });
 
             const data = await response.json();
             loader.style.display = 'none';
-            btn.disabled = false; btn.style.opacity = '1';
+            btn.disabled = false;
 
             let rawText = (typeof data === 'string') ? data : (data.output || data.text || JSON.stringify(data));
 
-            // --- ФИЛЬТР "ПРОФЕССИОНАЛ" (удаляет мусор) ---
+            // --- УЛЬТРА-ФИЛЬТР ДЕКОМПОЗИЦИИ ---
             const tasks = rawText
                 .split('\n')
                 .map(line => line.replace(/[#*—]/g, '').replace(/\[[\sxX]?\]/g, '').replace(/^[-•\d.]+\s?/, '').trim())
                 .filter(line => {
                     const low = line.toLowerCase();
-                    const isJunk = line.length < 5 || line.endsWith('?') || line.endsWith(':') || line.includes('---');
-                    const isIntro = /^(вот|вижу|отличная|зачем|какой|о чем|инструкц|план|шаг|ниже|это|подготов|разработ|актуаль|поэтап)/.test(low);
-                    const isFiller = /(надеюсь|поможет|удач|системно|эффективно|забыть|согласно|простой|понятный|несложная)/.test(low);
-                    return !isJunk && !isIntro && !isFiller;
+                    const wordsCount = line.split(' ').length;
+                    
+                    // Убираем вопросы, заголовки, слишком длинные описания и "болтовню"
+                    const isTask = wordsCount > 1 && wordsCount < 15; // Задача обычно от 2 до 15 слов
+                    const isNotChatter = !/^(вот|вижу|привет|надеюсь|удач|отлич|ниже|план|шаг|это|подготов|разработ|коротк)/.test(low);
+                    const isAction = !line.endsWith('?') && !line.endsWith(':');
+
+                    return isTask && isNotChatter && isAction && !line.includes('---');
                 });
 
             if (tasks.length === 0) {
-                addTask("ИИ не выдал четких задач. Попробуйте уточнить запрос.");
+                // Если фильтры всё съели, значит ИИ прислал "кашу". Выводим просьбу уточнить.
+                addTask("ИИ выдал слишком общий текст. Попробуй конкретизировать задачу.");
             } else {
                 tasks.forEach(t => addTask(t));
             }
             updateProgress();
         } catch (e) {
-            loader.innerText = "Ошибка соединения.";
-            btn.disabled = false; btn.style.opacity = '1';
+            loader.innerText = "Ошибка n8n. Проверьте CORS.";
+            btn.disabled = false;
         }
     }
 
@@ -159,7 +159,7 @@
     }
 
     function resetAll() {
-        if (confirm("Очистить текущий план?")) {
+        if (confirm("Очистить?")) {
             document.getElementById('goalInput').value = '';
             document.getElementById('taskList').innerHTML = '';
             document.getElementById('progressContainer').style.display = 'none';
