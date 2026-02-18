@@ -74,7 +74,7 @@
         <textarea id="goalInput" rows="3" placeholder="Опиши свою большую цель..."></textarea>
         <button id="mainBtn" class="btn-generate" onclick="handleStart()">Декомпозировать</button>
     </div>
-    <div id="loader">Нейросеть очищает список...</div>
+    <div id="loader">Чистим список от мусора...</div>
     <div class="progress-container" id="progressContainer">
         <div id="progress-fill"></div>
     </div>
@@ -118,36 +118,40 @@
             else if (data.text) rawText = data.text;
             else rawText = JSON.stringify(data);
 
-            // --- ФИНАЛЬНЫЙ ФИЛЬТР МУСОРА ---
-            const stopWords = ['вот', 'вижу', 'план', 'инструкция', 'чек-лист', 'согласно', 'конечно', 'подготовил', 'удачи', 'шаги', 'подготовка', 'меню'];
-
+            // --- МАКСИМАЛЬНАЯ ОЧИСТКА ---
             const tasks = rawText
                 .split('\n')
                 .map(line => {
                     return line
-                        .replace(/[#*]/g, '')            // Убираем # и *
-                        .replace(/\[[\sxX]?\]/g, '')    // Убираем [ ], [x]
-                        .replace(/^[-•—\d.]+\s?/, '')   // Убираем тире, цифры и точки в начале
-                        .replace(/:\s*$/, '')           // Убираем двоеточие в конце
+                        .replace(/[#*—]/g, '')            // Убираем #, * и длинное тире —
+                        .replace(/\[[\sxX]?\]/g, '')     // Убираем чекбоксы
+                        .replace(/^[-•\d.]+\s?/, '')     // Убираем тире, цифры и точки в начале
+                        .replace(/:\s*$/, '')            // Убираем двоеточия в конце
                         .trim();
                 })
                 .filter(line => {
                     const low = line.toLowerCase();
-                    // Оставляем только содержательные строки
-                    return line.length > 5 && 
-                           !line.includes('---') && 
-                           !stopWords.some(word => low.startsWith(word));
+                    // Фильтруем реплики ИИ
+                    const isTooLong = line.length > 130;
+                    const isIntro = /^(вот|вижу|это|ниже|план|инструк|шаг|подготов|конечно|задача|простой|понятный|разработка|удобный)/.test(low);
+                    const isChatter = /(удачи|надеюсь|поможет|забыть|системно|согласно|подготовил)/.test(low);
+                    
+                    return line.length > 4 && !line.includes('---') && !isTooLong && !isIntro && !isChatter;
                 });
 
             if (tasks.length === 0) {
-                addTask("ИИ был слишком разговорчив. Попробуйте еще раз.");
+                // Если фильтры слишком жесткие, выводим что есть, но чистим
+                rawText.split('\n').slice(0, 8).forEach(l => {
+                    let clean = l.replace(/[#*—]/g, '').trim();
+                    if (clean.length > 5 && !clean.includes('---')) addTask(clean);
+                });
             } else {
                 tasks.forEach(t => addTask(t));
             }
             
             updateProgress();
         } catch (e) {
-            loader.innerText = "Ошибка n8n! Проверьте CORS и статус сценария.";
+            loader.innerText = "Ошибка! Проверь n8n.";
             btn.disabled = false;
             btn.style.opacity = '1';
         }
@@ -185,6 +189,7 @@
 </script>
 </body>
 </html>
+
 
 
 
