@@ -62,7 +62,7 @@
         .task-item.completed .task-text { text-decoration: line-through; }
         .check-btn { width: 24px; height: 24px; border: 2px solid #667eea; border-radius: 6px; cursor: pointer; flex-shrink: 0; }
         .completed .check-btn { background: #2ecc71; border-color: #2ecc71; }
-        .task-text { flex-grow: 1; outline: none; line-height: 1.4; }
+        .task-text { flex-grow: 1; outline: none; line-height: 1.4; font-weight: 500; }
         .btn-reset { display: block; margin: 30px auto 0; background: none; border: none; color: #ff4757; cursor: pointer; font-weight: 600; }
     </style>
 </head>
@@ -95,7 +95,7 @@
         const btn = document.getElementById('mainBtn');
         
         loader.style.display = 'block';
-        loader.innerText = "Нейросеть дробит задачу...";
+        loader.innerText = "Формируем чистый список...";
         btn.disabled = true;
         btn.style.opacity = '0.5';
         taskList.innerHTML = '';
@@ -108,7 +108,7 @@
                 body: JSON.stringify({ goal: goal })
             });
 
-            if (!response.ok) throw new Error('CORS_ERROR');
+            if (!response.ok) throw new Error('Network error');
 
             const data = await response.json();
             loader.style.display = 'none';
@@ -121,34 +121,38 @@
             else if (data.tasks) rawText = Array.isArray(data.tasks) ? data.tasks.join('\n') : data.tasks;
             else rawText = JSON.stringify(data);
 
-            // ОЧИСТКА МУСОРА
-            const stopWords = ['вот', 'чек-лист', 'план', 'удачи', 'конечно', 'согласно', 'задач'];
+            // ФИЛЬТРАЦИЯ И ОЧИСТКА
+            const stopWords = ['вот', 'чек-лист', 'план', 'удачи', 'конечно', 'согласно', 'задач', 'меню', 'ужин', 'куриное', 'привет', 'подготовил'];
 
             const tasks = rawText
                 .split('\n')
                 .map(line => {
                     return line
-                        .replace(/[#*]/g, '')                // Убираем решетки и звездочки
-                        .replace(/\[[\sxX]?\]/g, '')        // Убираем [ ], [x], [X]
-                        .replace(/^[-•—\d.]+\s?/, '')       // Убираем тире, цифры и точки в начале
+                        .replace(/[#*]/g, '')               // Убираем решетки и звездочки
+                        .replace(/\[[\sxX]?\]/g, '')       // Убираем [ ], [x]
+                        .replace(/^[-•—\d.]+\s?/, '')      // Убираем тире, цифры и точки в начале
+                        .replace(/:\s*$/, '')              // Убираем двоеточия в конце
                         .trim();
                 })
                 .filter(line => {
                     const low = line.toLowerCase();
-                    return line.length > 3 && 
-                           !line.includes('---') && 
+                    // Убираем пустые, разделители и строки со стоп-словами
+                    return line.length > 5 && 
+                           !line.startsWith('---') && 
                            !stopWords.some(word => low.startsWith(word));
                 });
 
-            if (tasks.length === 0) addTask("ИИ подготовил ответ, но он не похож на список задач. Попробуйте еще раз.");
+            if (tasks.length === 0) {
+                addTask("ИИ не выдал четких шагов. Попробуй изменить запрос.");
+            } else {
+                tasks.forEach(t => addTask(t));
+            }
             
-            tasks.forEach(t => addTask(t));
             updateProgress();
         } catch (e) {
-            loader.innerText = "Ошибка CORS: проверьте настройки n8n.";
+            loader.innerText = "Ошибка! Проверь n8n (CORS и статус Active)";
             btn.disabled = false;
             btn.style.opacity = '1';
-            console.error('Ошибка:', e);
         }
     }
 
@@ -185,6 +189,7 @@
 
 </body>
 </html>
+
 
 
 
