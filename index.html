@@ -121,21 +121,31 @@
             else if (data.tasks) rawText = Array.isArray(data.tasks) ? data.tasks.join('\n') : data.tasks;
             else rawText = JSON.stringify(data);
 
-            // ЧИСТКА МУСОРА (Markdown, решетки, чекбоксы)
+            // ОЧИСТКА МУСОРА
+            const stopWords = ['вот', 'чек-лист', 'план', 'удачи', 'конечно', 'согласно', 'задач'];
+
             const tasks = rawText
                 .split('\n')
-                .map(line => line.replace(/[#*]/g, '')) // Убираем # и *
-                .map(line => line.replace(/\[\s?[xX]?\s?\]/g, '')) // Убираем [ ], [x], [X]
-                .map(line => line.replace(/^[-•—\d.]+\s?/, '')) // Убираем дефисы, точки и цифры в начале строки
-                .map(line => line.trim())
-                .filter(line => line.length > 4 && !line.includes('---')); // Игнорим пустые строки и разделители
+                .map(line => {
+                    return line
+                        .replace(/[#*]/g, '')                // Убираем решетки и звездочки
+                        .replace(/\[[\sxX]?\]/g, '')        // Убираем [ ], [x], [X]
+                        .replace(/^[-•—\d.]+\s?/, '')       // Убираем тире, цифры и точки в начале
+                        .trim();
+                })
+                .filter(line => {
+                    const low = line.toLowerCase();
+                    return line.length > 3 && 
+                           !line.includes('---') && 
+                           !stopWords.some(word => low.startsWith(word));
+                });
 
-            if (tasks.length === 0) addTask("ИИ вернул пустой результат. Попробуйте уточнить запрос.");
+            if (tasks.length === 0) addTask("ИИ подготовил ответ, но он не похож на список задач. Попробуйте еще раз.");
             
             tasks.forEach(t => addTask(t));
             updateProgress();
         } catch (e) {
-            loader.innerText = "Ошибка CORS: n8n не разрешает доступ браузеру.";
+            loader.innerText = "Ошибка CORS: проверьте настройки n8n.";
             btn.disabled = false;
             btn.style.opacity = '1';
             console.error('Ошибка:', e);
@@ -175,6 +185,7 @@
 
 </body>
 </html>
+
 
 
 
