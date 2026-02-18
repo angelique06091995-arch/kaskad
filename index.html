@@ -306,5 +306,17 @@
     }
 </script>
 
+    async function sendToAI(userGoal) {
+  const response = await fetch('ТВОЙ_URL_WEBHOOK_ИЗ_N8N', {
+    method: 'POST',
+    body: JSON.stringify({ goal: userGoal }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const data = await response.json();
+  console.log('План от ИИ:', data);
+  // Здесь добавь логику отображения данных в твоем интерфейсе
+}
+
 </body>
+
 </html>
