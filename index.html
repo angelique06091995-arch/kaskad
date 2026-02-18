@@ -74,7 +74,7 @@
         <textarea id="goalInput" rows="3" placeholder="Опиши свою большую цель..."></textarea>
         <button id="mainBtn" class="btn-generate" onclick="handleStart()">Декомпозировать</button>
     </div>
-    <div id="loader">Нейросеть дробит задачу...</div>
+    <div id="loader">Нейросеть очищает список...</div>
     <div class="progress-container" id="progressContainer">
         <div id="progress-fill"></div>
     </div>
@@ -95,7 +95,6 @@
         const btn = document.getElementById('mainBtn');
         
         loader.style.display = 'block';
-        loader.innerText = "Очистка от лишних слов...";
         btn.disabled = true;
         btn.style.opacity = '0.5';
         taskList.innerHTML = '';
@@ -108,8 +107,6 @@
                 body: JSON.stringify({ goal: goal })
             });
 
-            if (!response.ok) throw new Error('Network error');
-
             const data = await response.json();
             loader.style.display = 'none';
             btn.disabled = false;
@@ -121,38 +118,34 @@
             else if (data.text) rawText = data.text;
             else rawText = JSON.stringify(data);
 
-            // --- ЖЕСТКАЯ ОЧИСТКА МУСОРА ---
-            const stopPhrases = ['вот', 'этот', 'план', 'удачи', 'конечно', 'чек-лист', 'согласно', 'подготовил', 'ниже', 'шаги', 'меню'];
+            // --- ТОТАЛЬНАЯ ОЧИСТКА ---
+            const stopWords = ['вот', 'вижу', 'план', 'инструкция', 'чек-лист', 'согласно', 'конечно', 'подготовил', 'удачи', 'шаги'];
 
             const tasks = rawText
                 .split('\n')
-                .filter(line => line.trim().length > 0) // Убираем пустые
-                .filter(line => !line.includes('---'))  // Убираем разделители
-                .filter(line => !line.startsWith('#'))  // Убираем заголовки Markdown
+                .filter(line => {
+                    const cleanLine = line.trim();
+                    const low = cleanLine.toLowerCase();
+                    
+                    return cleanLine.length > 5 &&           // Игнорим слишком короткие строки
+                           !cleanLine.startsWith('#') &&     // Игнорим заголовки ## ###
+                           !cleanLine.startsWith('---') &&   // Игнорим разделители
+                           !stopWords.some(word => low.startsWith(word)); // Игнорим болтовню ИИ
+                })
                 .map(line => {
                     return line
-                        .replace(/[#*]/g, '')               // Убираем оставшиеся решетки и звездочки
-                        .replace(/\[[\sxX]?\]/g, '')       // Убираем [ ], [x]
-                        .replace(/^[-•—\d.]+\s?/, '')      // Убираем тире, цифры и точки в начале
-                        .replace(/:\s*$/, '')              // Убираем двоеточия в конце
+                        .replace(/[#*]/g, '')               // Удаляем # и * (спецсимволы)
+                        .replace(/\[[\sxX]?\]/g, '')       // Удаляем чекбоксы [ ], [x]
+                        .replace(/^[-•—\d.]+\s?/, '')      // Удаляем тире, точки и цифры в начале
+                        .replace(/:\s*$/, '')              // Удаляем двоеточия в конце
                         .trim();
                 })
-                .filter(line => {
-                    const low = line.toLowerCase();
-                    // Финальный фильтр: убираем короткие строки и вводные слова ИИ
-                    return line.length > 5 && 
-                           !stopPhrases.some(word => low.startsWith(word));
-                });
+                .filter(line => line.length > 0);           // Удаляем пустые после чистки
 
-            if (tasks.length === 0) {
-                addTask("ИИ был слишком разговорчив. Попробуйте нажать кнопку еще раз.");
-            } else {
-                tasks.forEach(t => addTask(t));
-            }
-            
+            tasks.forEach(t => addTask(t));
             updateProgress();
         } catch (e) {
-            loader.innerText = "Ошибка! Проверьте n8n (CORS и статус Active)";
+            loader.innerText = "Ошибка! Проверьте соединение.";
             btn.disabled = false;
             btn.style.opacity = '1';
         }
@@ -188,9 +181,9 @@
         }
     }
 </script>
-
 </body>
 </html>
+
 
 
 
