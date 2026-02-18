@@ -49,7 +49,7 @@
             background: var(--btn-grad); color: white; border: none; padding: 15px;
             border-radius: 15px; font-weight: 600; cursor: pointer; text-transform: uppercase;
         }
-        #loader { display: none; text-align: center; margin-bottom: 20px; color: #764ba2; font-style: italic; }
+        #loader { display: none; text-align: center; margin-bottom: 20px; color: #764ba2; font-style: italic; font-weight: 600; }
         .progress-container { height: 8px; background: #eee; border-radius: 10px; margin-bottom: 25px; display: none; }
         #progress-fill { height: 100%; width: 0%; background: var(--btn-grad); border-radius: 10px; transition: 0.5s; }
         #taskList { list-style: none; padding: 0; }
@@ -74,7 +74,7 @@
         <textarea id="goalInput" rows="3" placeholder="Опиши свою большую цель..."></textarea>
         <button id="mainBtn" class="btn-generate" onclick="handleStart()">Декомпозировать</button>
     </div>
-    <div id="loader">Чистим список от мусора...</div>
+    <div id="loader">Думаю...</div>
     <div class="progress-container" id="progressContainer">
         <div id="progress-fill"></div>
     </div>
@@ -118,33 +118,31 @@
             else if (data.text) rawText = data.text;
             else rawText = JSON.stringify(data);
 
-            // --- МАКСИМАЛЬНАЯ ОЧИСТКА ---
+            // --- УЛЬТРА-ОЧИСТКА ---
             const tasks = rawText
                 .split('\n')
                 .map(line => {
                     return line
-                        .replace(/[#*—]/g, '')            // Убираем #, * и длинное тире —
-                        .replace(/\[[\sxX]?\]/g, '')     // Убираем чекбоксы
-                        .replace(/^[-•\d.]+\s?/, '')     // Убираем тире, цифры и точки в начале
-                        .replace(/:\s*$/, '')            // Убираем двоеточия в конце
+                        .replace(/[#*—]/g, '')            // Убираем решетки, звезды и длинное тире
+                        .replace(/\[[\sxX]?\]/g, '')     // Убираем любые виды чекбоксов
+                        .replace(/^[-•\d.]+\s?/, '')     // Убираем нумерацию, точки и тире в начале
                         .trim();
                 })
                 .filter(line => {
                     const low = line.toLowerCase();
-                    // Фильтруем реплики ИИ
-                    const isTooLong = line.length > 130;
-                    const isIntro = /^(вот|вижу|это|ниже|план|инструк|шаг|подготов|конечно|задача|простой|понятный|разработка|удобный)/.test(low);
-                    const isChatter = /(удачи|надеюсь|поможет|забыть|системно|согласно|подготовил)/.test(low);
-                    
-                    return line.length > 4 && !line.includes('---') && !isTooLong && !isIntro && !isChatter;
+                    // ПРАВИЛА УДАЛЕНИЯ КОММЕНТАРИЕВ:
+                    const isQuestion = line.endsWith('?'); // ИИ часто задает уточняющие вопросы
+                    const isHeader = line.endsWith(':');   // Заголовки типа "Что нужно:"
+                    const isTooShort = line.length < 4;    // Мусор
+                    const isIntro = /^(вот|вижу|отличная|зачем|какой|о чем|какую|инструкц|план|шаг|ниже|это|подготов)/.test(low);
+                    const isFiller = /(надеюсь|поможет|удач|системно|эффективно|забыть|согласно|поэтапно)/.test(low);
+
+                    return !isQuestion && !isHeader && !isTooShort && !isIntro && !isFiller && !line.includes('---');
                 });
 
+            // Если после всех фильтров пусто, выводим заглушку или пытаемся вытащить хоть что-то
             if (tasks.length === 0) {
-                // Если фильтры слишком жесткие, выводим что есть, но чистим
-                rawText.split('\n').slice(0, 8).forEach(l => {
-                    let clean = l.replace(/[#*—]/g, '').trim();
-                    if (clean.length > 5 && !clean.includes('---')) addTask(clean);
-                });
+                addTask("Попробуй сформулировать цель более конкретно (например: 'Купить продукты для ужина')");
             } else {
                 tasks.forEach(t => addTask(t));
             }
@@ -153,7 +151,6 @@
         } catch (e) {
             loader.innerText = "Ошибка! Проверь n8n.";
             btn.disabled = false;
-            btn.style.opacity = '1';
         }
     }
 
@@ -189,6 +186,7 @@
 </script>
 </body>
 </html>
+
 
 
 
