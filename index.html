@@ -118,34 +118,36 @@
             else if (data.text) rawText = data.text;
             else rawText = JSON.stringify(data);
 
-            // --- ТОТАЛЬНАЯ ОЧИСТКА ---
-            const stopWords = ['вот', 'вижу', 'план', 'инструкция', 'чек-лист', 'согласно', 'конечно', 'подготовил', 'удачи', 'шаги'];
+            // --- ФИНАЛЬНЫЙ ФИЛЬТР МУСОРА ---
+            const stopWords = ['вот', 'вижу', 'план', 'инструкция', 'чек-лист', 'согласно', 'конечно', 'подготовил', 'удачи', 'шаги', 'подготовка', 'меню'];
 
             const tasks = rawText
                 .split('\n')
-                .filter(line => {
-                    const cleanLine = line.trim();
-                    const low = cleanLine.toLowerCase();
-                    
-                    return cleanLine.length > 5 &&           // Игнорим слишком короткие строки
-                           !cleanLine.startsWith('#') &&     // Игнорим заголовки ## ###
-                           !cleanLine.startsWith('---') &&   // Игнорим разделители
-                           !stopWords.some(word => low.startsWith(word)); // Игнорим болтовню ИИ
-                })
                 .map(line => {
                     return line
-                        .replace(/[#*]/g, '')               // Удаляем # и * (спецсимволы)
-                        .replace(/\[[\sxX]?\]/g, '')       // Удаляем чекбоксы [ ], [x]
-                        .replace(/^[-•—\d.]+\s?/, '')      // Удаляем тире, точки и цифры в начале
-                        .replace(/:\s*$/, '')              // Удаляем двоеточия в конце
+                        .replace(/[#*]/g, '')            // Убираем # и *
+                        .replace(/\[[\sxX]?\]/g, '')    // Убираем [ ], [x]
+                        .replace(/^[-•—\d.]+\s?/, '')   // Убираем тире, цифры и точки в начале
+                        .replace(/:\s*$/, '')           // Убираем двоеточие в конце
                         .trim();
                 })
-                .filter(line => line.length > 0);           // Удаляем пустые после чистки
+                .filter(line => {
+                    const low = line.toLowerCase();
+                    // Оставляем только содержательные строки
+                    return line.length > 5 && 
+                           !line.includes('---') && 
+                           !stopWords.some(word => low.startsWith(word));
+                });
 
-            tasks.forEach(t => addTask(t));
+            if (tasks.length === 0) {
+                addTask("ИИ был слишком разговорчив. Попробуйте еще раз.");
+            } else {
+                tasks.forEach(t => addTask(t));
+            }
+            
             updateProgress();
         } catch (e) {
-            loader.innerText = "Ошибка! Проверьте соединение.";
+            loader.innerText = "Ошибка n8n! Проверьте CORS и статус сценария.";
             btn.disabled = false;
             btn.style.opacity = '1';
         }
@@ -183,6 +185,7 @@
 </script>
 </body>
 </html>
+
 
 
 
