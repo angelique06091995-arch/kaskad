@@ -83,7 +83,7 @@
 </div>
 
 <script>
-    // ТВОЙ URL ИЗ n8n
+    // 1. ИСПОЛЬЗУЕМ PRODUCTION URL (без слова /test/)
     const WEBHOOK_URL = 'https://n8n.2gis.io/webhook/28414bc9-9b12-4c01-b698-fbf5aaf47485';
 
     async function handleStart() {
@@ -101,26 +101,31 @@
         try {
             const response = await fetch(WEBHOOK_URL, {
                 method: 'POST',
+                // Режим cors важен для работы с браузера
+                mode: 'cors', 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ goal: goal })
             });
 
-            if (!response.ok) throw new Error('Ошибка сети');
+            if (!response.ok) throw new Error('Ошибка сети или CORS');
 
             const data = await response.json();
             loader.style.display = 'none';
 
             let tasks = [];
+            // Универсальная обработка данных от n8n
             if (Array.isArray(data)) tasks = data;
             else if (data.tasks) tasks = data.tasks;
             else if (data.output) tasks = data.output.split('\n').filter(t => t.trim());
+            else if (typeof data === 'object') tasks = Object.values(data);
             else tasks = [JSON.stringify(data)];
 
             tasks.forEach(t => addTask(t));
             updateProgress();
         } catch (e) {
-            loader.innerText = "Ошибка: проверьте n8n (Test URL и CORS)";
-            console.error(e);
+            // Если ошибка CORS осталась, выводим подсказку
+            loader.innerText = "Ошибка: n8n блокирует запрос (CORS). Проверьте настройки сервера.";
+            console.error('Подробности ошибки:', e);
         }
     }
 
@@ -157,4 +162,5 @@
 
 </body>
 </html>
+
 
